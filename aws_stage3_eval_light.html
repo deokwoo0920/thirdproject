@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AWS 배포 3단계 통합 평가 가이드</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:          #f8f9fc;
+    --bg2:         #ffffff;
+    --bg3:         #f1f3f8;
+    --border:      #e2e6ef;
+    --border2:     #c8cfe0;
+    --text:        #1a1d2e;
+    --muted:       #6b7280;
+    --blue:        #2563eb;
+    --blue-light:  #eff6ff;
+    --blue-mid:    #bfdbfe;
+    --orange:      #ea580c;
+    --orange-light:#fff7ed;
+    --orange-mid:  #fed7aa;
+    --green:       #16a34a;
+    --green-light: #f0fdf4;
+    --green-mid:   #bbf7d0;
+    --red:         #dc2626;
+    --red-light:   #fef2f2;
+    --red-mid:     #fecaca;
+    --yellow:      #d97706;
+    --yellow-light:#fffbeb;
+    --yellow-mid:  #fde68a;
+    --purple:      #7c3aed;
+    --purple-light:#f5f3ff;
+    --teal:        #0d9488;
+    --teal-light:  #f0fdfa;
+    --teal-mid:    #99f6e4;
+    --shadow-sm:   0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+    --shadow-md:   0 4px 12px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.04);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Plus Jakarta Sans', 'Noto Sans KR', sans-serif;
+    background: var(--bg); color: var(--text);
+    line-height: 1.65; overflow-x: hidden;
+  }
+
+  /* ── NAV ──────────────────────────────────────────────── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(255,255,255,.94); backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 2rem; height: 56px; box-shadow: var(--shadow-sm);
+  }
+  .nav-brand { font-size: 1rem; font-weight: 700; letter-spacing: -.2px; color: var(--teal); display: flex; align-items: center; gap: .4rem; }
+  .nav-brand .sep { color: var(--border2); font-weight: 300; margin: 0 .1rem; }
+  .nav-brand .sub { color: var(--muted); font-weight: 500; font-size: .82rem; }
+  .nav-links { display: flex; gap: .2rem; }
+  .nav-links a { color: var(--muted); text-decoration: none; padding: .38rem .8rem; border-radius: 6px; font-size: .84rem; font-weight: 500; transition: all .18s; }
+  .nav-links a:hover { color: var(--teal); background: var(--teal-light); }
+  .nav-links a.active { color: var(--teal); background: var(--teal-light); font-weight: 600; }
+  .hamburger { display: none; cursor: pointer; color: var(--muted); font-size: 1.3rem; border: none; background: none; }
+
+  /* ── HERO ─────────────────────────────────────────────── */
+  .hero {
+    padding: 100px 2rem 52px; text-align: center;
+    background: linear-gradient(180deg, #f0fdfa 0%, #f8f9fc 100%);
+    border-bottom: 1px solid var(--border);
+  }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: .4rem;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 99px; padding: .22rem .9rem;
+    font-size: .76rem; color: var(--muted); margin-bottom: 1.1rem;
+    box-shadow: var(--shadow-sm);
+  }
+  .hero-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--teal); display: inline-block; }
+  .hero h1 { font-size: clamp(1.9rem,4.5vw,3rem); font-weight: 800; line-height: 1.18; letter-spacing: -.5px; color: var(--text); margin-bottom: .7rem; }
+  .hero h1 em { font-style: normal; color: var(--teal); }
+  .hero p { color: var(--muted); font-size: .95rem; max-width: 560px; margin: 0 auto 1.8rem; }
+
+  .hero-chips { display: flex; flex-wrap: wrap; gap: .45rem; justify-content: center; margin-bottom: 2.2rem; }
+  .chip { padding: .28rem .75rem; border-radius: 6px; font-size: .77rem; font-family: 'JetBrains Mono', monospace; font-weight: 600; letter-spacing: .3px; }
+  .chip-blue   { background: var(--blue-light);   color: var(--blue);   border: 1px solid var(--blue-mid); }
+  .chip-orange { background: var(--orange-light);  color: var(--orange); border: 1px solid var(--orange-mid); }
+  .chip-green  { background: var(--green-light);   color: var(--green);  border: 1px solid var(--green-mid); }
+  .chip-purple { background: var(--purple-light);  color: var(--purple); border: 1px solid #ddd6fe; }
+  .chip-teal   { background: var(--teal-light);    color: var(--teal);   border: 1px solid var(--teal-mid); }
+
+  .score-ring {
+    display: inline-flex; flex-direction: column; align-items: center;
+    justify-content: center; width: 88px; height: 88px;
+    border-radius: 50%; border: 3px solid var(--teal);
+    background: var(--teal-light); margin: 0 auto 2.2rem;
+  }
+  .score-ring .num { font-size: 1.65rem; font-weight: 800; color: var(--teal); line-height: 1; }
+  .score-ring .lbl { font-size: .62rem; color: var(--muted); margin-top: 2px; font-weight: 600; }
+
+  /* ── TABS ─────────────────────────────────────────────── */
+  .tab-bar {
+    display: flex; overflow-x: auto; border-bottom: 1px solid var(--border);
+    padding: 0 1.5rem; background: var(--bg2);
+    position: sticky; top: 56px; z-index: 80; box-shadow: var(--shadow-sm);
+  }
+  .tab-bar::-webkit-scrollbar { display: none; }
+  .tab-btn { padding: .78rem 1.2rem; background: none; border: none; color: var(--muted); font-size: .86rem; font-family: 'Plus Jakarta Sans','Noto Sans KR',sans-serif; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; transition: all .18s; white-space: nowrap; }
+  .tab-btn:hover { color: var(--teal); }
+  .tab-btn.active { color: var(--teal); border-bottom-color: var(--teal); font-weight: 600; }
+  .tab-panel { display: none; animation: fadeUp .25s ease; }
+  .tab-panel.active { display: block; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);} }
+
+  /* ── LAYOUT ────────────────────────────────────────────── */
+  .section { max-width: 900px; margin: 0 auto; padding: 2.2rem 1.5rem; }
+  .section-title { font-size: 1.05rem; font-weight: 700; letter-spacing: -.2px; display: flex; align-items: center; gap: .5rem; margin-bottom: 1rem; }
+  .section-title::before { content:''; display:block; width:3px; height:18px; border-radius:2px; }
+  .section-title.teal::before   { background: var(--teal); }
+  .section-title.blue::before   { background: var(--blue); }
+  .section-title.orange::before { background: var(--orange); }
+  .section-title.green::before  { background: var(--green); }
+  .section-title.purple::before { background: var(--purple); }
+
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 1.2rem; margin-bottom: .9rem; box-shadow: var(--shadow-sm); }
+  .card:hover { box-shadow: var(--shadow-md); }
+
+  /* ── TRACK CARDS ───────────────────────────────────────── */
+  .track-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: .9rem; margin-bottom: 1.3rem; }
+  .track-card {
+    background: var(--bg2); border: 2px solid var(--border);
+    border-radius: 12px; padding: 1.2rem 1rem;
+    cursor: pointer; transition: all .2s; text-align: center;
+    position: relative; box-shadow: var(--shadow-sm);
+  }
+  .track-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+  .track-card.sel-A { border-color: var(--blue);   background: var(--blue-light);  box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+  .track-card.sel-B { border-color: var(--green);  background: var(--green-light); box-shadow: 0 0 0 3px rgba(22,163,74,.12); }
+  .track-card.sel-C { border-color: var(--orange); background: var(--orange-light);box-shadow: 0 0 0 3px rgba(234,88,12,.12); }
+  .track-card .tk-icon { font-size: 1.8rem; margin-bottom: .45rem; }
+  .track-card .tk-name { font-size: .92rem; font-weight: 700; margin-bottom: .2rem; }
+  .track-card .tk-desc { font-size: .74rem; color: var(--muted); line-height: 1.55; margin-bottom: .55rem; }
+  .track-card .tk-diff { font-size: .71rem; font-family: 'JetBrains Mono',monospace; font-weight: 600; }
+  .track-badge { position: absolute; top: .55rem; right: .55rem; padding: .12rem .45rem; border-radius: 99px; font-size: .64rem; font-weight: 700; }
+
+  /* ── INFO BOX ──────────────────────────────────────────── */
+  .info-box { display: flex; gap: .7rem; padding: .85rem .95rem; border-radius: 8px; font-size: .83rem; margin: .7rem 0; border: 1px solid; }
+  .info-box.warn  { background: var(--yellow-light); border-color: var(--yellow-mid); color: #92400e; }
+  .info-box.error { background: var(--red-light);    border-color: var(--red-mid);   color: var(--red); }
+  .info-box.tip   { background: var(--teal-light);   border-color: var(--teal-mid);  color: #0f766e; }
+  .info-box.info  { background: var(--blue-light);   border-color: var(--blue-mid);  color: #1e40af; }
+  .info-box .icon { flex-shrink: 0; font-size: .95rem; margin-top: 1px; }
+  .info-box .body { font-weight: 500; }
+
+  /* ── ARCH / SG CHAIN ──────────────────────────────────── */
+  .sg-chain { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem; margin: .6rem 0; }
+  .sg-box { padding: .25rem .6rem; border-radius: 5px; font-size: .77rem; font-family: 'JetBrains Mono',monospace; font-weight: 600; }
+  .sg-arr { color: var(--muted); font-size: .9rem; }
+
+  /* ── REQ TABLE ─────────────────────────────────────────── */
+  .req-table { width:100%; border-collapse:collapse; font-size:.83rem; }
+  .req-table th { background:var(--bg3); color:var(--muted); padding:.55rem .85rem; text-align:left; font-weight:700; font-size:.72rem; letter-spacing:.5px; text-transform:uppercase; border-bottom:1px solid var(--border); }
+  .req-table td { padding:.65rem .85rem; border-bottom:1px solid var(--border); vertical-align:top; }
+  .req-table tr:last-child td { border-bottom:none; }
+  .req-table tr:hover td { background:var(--bg3); }
+  .req-num { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; font-size:.72rem; font-weight:700; flex-shrink:0; margin-right:.3rem; }
+  .cond-chip { display:inline-block; padding:.12rem .45rem; border-radius:4px; font-size:.69rem; font-weight:700; font-family:'JetBrains Mono',monospace; }
+
+  /* ── CODE BLOCK ────────────────────────────────────────── */
+  .code-block { background:#1e2433; border:1px solid #2d3550; border-radius:8px; overflow-x:auto; font-family:'JetBrains Mono',monospace; font-size:.79rem; line-height:1.75; margin:.7rem 0; }
+  .code-hdr { background:#262d42; border-bottom:1px solid #2d3550; padding:.38rem .85rem; display:flex; align-items:center; justify-content:space-between; font-size:.7rem; color:#7c88a8; }
+  .code-dots { display:flex; gap:5px; }
+  .code-dots span { width:9px; height:9px; border-radius:50%; }
+  .code-dots span:nth-child(1){background:#ff5f57;} .code-dots span:nth-child(2){background:#ffbd2e;} .code-dots span:nth-child(3){background:#28c840;}
+  .code-block pre { padding:.8rem 1rem; color:#c9d1e8; }
+  .kw{color:#c792ea;} .cm{color:#546e7a;} .str{color:#c3e88d;} .num2{color:#bd93f9;}
+
+  /* ── SUB TABS (트랙 전환) ───────────────────────────────── */
+  .sub-tab-bar { display:flex; gap:0; border-bottom:1px solid var(--border); margin-bottom:.9rem; }
+  .sub-tab-btn { padding:.6rem 1rem; background:none; border:none; color:var(--muted); font-size:.84rem; font-family:'Plus Jakarta Sans','Noto Sans KR',sans-serif; font-weight:500; cursor:pointer; border-bottom:2px solid transparent; transition:all .18s; white-space:nowrap; }
+  .sub-tab-btn:hover { color:var(--text); }
+  .sub-tab-btn.stab-A.active { color:var(--blue);   border-bottom-color:var(--blue); font-weight:600; }
+  .sub-tab-btn.stab-B.active { color:var(--green);  border-bottom-color:var(--green); font-weight:600; }
+  .sub-tab-btn.stab-C.active { color:var(--orange); border-bottom-color:var(--orange); font-weight:600; }
+
+  /* ── RUBRIC ────────────────────────────────────────────── */
+  .rubric-header { display:grid; grid-template-columns:2fr 1.6fr 1.6fr 1.2fr 1.2fr .5fr; gap:.4rem; padding:.5rem .7rem; background:var(--bg3); border-radius:8px 8px 0 0; border:1px solid var(--border); border-bottom:none; font-size:.7rem; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:var(--muted); }
+  .rubric-row { display:grid; grid-template-columns:2fr 1.6fr 1.6fr 1.2fr 1.2fr .5fr; gap:.4rem; padding:.72rem .7rem; border:1px solid var(--border); border-top:none; font-size:.8rem; align-items:start; background:var(--bg2); transition:background .15s; }
+  .rubric-row:last-child { border-radius:0 0 8px 8px; }
+  .rubric-row:hover { background:var(--bg3); }
+  .rubric-row:nth-child(even) { background:#fafbfd; }
+  .rubric-row:nth-child(even):hover { background:var(--bg3); }
+  .rubric-row .item-name { font-weight:700; color:var(--text); font-size:.82rem; }
+  .rubric-row .s4 { color:var(--green); font-size:.75rem; }
+  .rubric-row .s3 { color:var(--blue);  font-size:.75rem; }
+  .rubric-row .s2 { color:var(--yellow);font-size:.75rem; }
+  .rubric-row .s1 { color:var(--red);   font-size:.75rem; }
+  .rubric-row .pts { font-weight:700; color:var(--muted); text-align:center; font-family:'JetBrains Mono',monospace; font-size:.8rem; }
+
+  .area-label { display:flex; align-items:center; gap:.5rem; padding:.55rem .75rem; margin-top:1.2rem; font-size:.77rem; font-weight:700; letter-spacing:.3px; border-radius:6px; text-transform:uppercase; }
+  .area-label.teal   { background:var(--teal-light);   color:var(--teal);   border-left:3px solid var(--teal); }
+  .area-label.blue   { background:var(--blue-light);   color:var(--blue);   border-left:3px solid var(--blue); }
+  .area-label.orange { background:var(--orange-light);  color:var(--orange); border-left:3px solid var(--orange); }
+  .area-label.green  { background:var(--green-light);   color:var(--green);  border-left:3px solid var(--green); }
+  .area-label.purple { background:var(--purple-light);  color:var(--purple); border-left:3px solid var(--purple); }
+
+  /* ── SCORER ────────────────────────────────────────────── */
+  .scorer-wrap { display:grid; grid-template-columns:1fr 300px; gap:1.4rem; align-items:start; }
+  .score-area { margin-bottom:1.4rem; }
+  .score-area-title { font-size:.77rem; font-weight:700; letter-spacing:.4px; text-transform:uppercase; margin-bottom:.7rem; padding-bottom:.4rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+  .score-item { display:flex; align-items:center; gap:.7rem; padding:.58rem .75rem; margin-bottom:.35rem; background:var(--bg2); border:1px solid var(--border); border-radius:8px; box-shadow:var(--shadow-sm); transition:border-color .15s; }
+  .score-item:hover { border-color:var(--border2); }
+  .score-item-label { flex:1; font-size:.84rem; font-weight:500; }
+  .score-item-label small { display:block; color:var(--muted); font-size:.71rem; margin-top:1px; font-weight:400; }
+  .score-btns { display:flex; gap:.28rem; }
+  .score-btn { width:32px; height:32px; border-radius:6px; border:1px solid var(--border); background:var(--bg3); color:var(--muted); font-size:.8rem; font-weight:700; cursor:pointer; transition:all .14s; font-family:'JetBrains Mono',monospace; }
+  .score-btn:hover { border-color:var(--teal); color:var(--teal); background:var(--teal-light); }
+  .score-btn.s4.selected { background:var(--green-light); color:var(--green); border-color:var(--green); }
+  .score-btn.s3.selected { background:var(--blue-light);  color:var(--blue);  border-color:var(--blue); }
+  .score-btn.s2.selected { background:var(--yellow-light);color:var(--yellow);border-color:var(--yellow); }
+  .score-btn.s1.selected { background:var(--red-light);   color:var(--red);   border-color:var(--red); }
+  .score-btn.s8.selected { background:var(--green-light); color:var(--green); border-color:var(--green); }
+  .score-btn.s0.selected { background:var(--red-light);   color:var(--red);   border-color:var(--red); }
+
+  /* track selector bar in scorer */
+  .track-select-bar { display:flex; gap:.5rem; margin-bottom:.9rem; }
+  .track-sel-btn { flex:1; padding:.45rem; border-radius:7px; border:1px solid var(--border); background:var(--bg3); color:var(--muted); font-size:.79rem; font-weight:600; cursor:pointer; transition:all .18s; text-align:center; font-family:'Plus Jakarta Sans','Noto Sans KR',sans-serif; }
+  .track-sel-btn:hover { border-color:var(--border2); }
+  .track-sel-btn.sel-A { border-color:var(--blue);   background:var(--blue-light);   color:var(--blue); }
+  .track-sel-btn.sel-B { border-color:var(--green);  background:var(--green-light);  color:var(--green); }
+  .track-sel-btn.sel-C { border-color:var(--orange); background:var(--orange-light); color:var(--orange); }
+
+  /* score card */
+  .score-card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:1.15rem; position:sticky; top:116px; box-shadow:var(--shadow-md); }
+  .score-card h3 { font-size:.8rem; font-weight:700; color:var(--muted); margin-bottom:.8rem; text-transform:uppercase; letter-spacing:.4px; }
+  .student-input { width:100%; background:var(--bg3); border:1px solid var(--border); border-radius:7px; padding:.48rem .75rem; color:var(--text); font-size:.88rem; font-family:'Plus Jakarta Sans','Noto Sans KR',sans-serif; margin-bottom:.7rem; outline:none; font-weight:500; transition:border-color .18s,box-shadow .18s; }
+  .student-input:focus { border-color:var(--teal); box-shadow:0 0 0 3px rgba(13,148,136,.1); }
+  .track-label-box { font-size:.72rem; color:var(--muted); margin-bottom:.6rem; padding:.38rem .6rem; background:var(--bg3); border-radius:5px; border:1px solid var(--border); }
+
+  .score-breakdown { display:flex; flex-direction:column; gap:.42rem; margin-bottom:.9rem; }
+  .score-row { display:flex; justify-content:space-between; align-items:center; font-size:.81rem; }
+  .score-row .label { color:var(--muted); font-weight:500; }
+  .score-row .val { font-family:'JetBrains Mono',monospace; font-weight:700; }
+
+  .total-score { text-align:center; padding:.9rem; background:var(--bg3); border-radius:8px; border:1px solid var(--border); margin-bottom:.7rem; }
+  .total-score .num { font-size:2.6rem; font-weight:800; line-height:1; letter-spacing:-1px; color:var(--text); transition:color .25s; }
+  .total-score .denom { font-size:.88rem; color:var(--muted); }
+  .total-score .grade-badge { display:inline-block; margin-top:.38rem; padding:.18rem .7rem; border-radius:99px; font-size:.78rem; font-weight:700; }
+
+  .bonus-section { margin-top:.7rem; border-top:1px solid var(--border); padding-top:.7rem; }
+  .bonus-item { display:flex; align-items:center; gap:.5rem; padding:.28rem 0; font-size:.79rem; }
+  .bonus-item input[type=checkbox] { accent-color:var(--teal); width:14px; height:14px; cursor:pointer; }
+  .bonus-item label { cursor:pointer; color:var(--muted); flex:1; font-weight:500; }
+  .bonus-item .pts { color:var(--purple); font-family:'JetBrains Mono',monospace; font-weight:700; font-size:.76rem; }
+  .reset-btn { width:100%; padding:.55rem; background:transparent; border:1px solid var(--border); border-radius:6px; color:var(--muted); font-family:'Plus Jakarta Sans','Noto Sans KR',sans-serif; font-size:.8rem; cursor:pointer; transition:all .18s; font-weight:500; margin-top:.7rem; }
+  .reset-btn:hover { border-color:var(--red); color:var(--red); background:var(--red-light); }
+
+  /* ── TIMER ─────────────────────────────────────────────── */
+  .timer-wrap { text-align:center; padding:1.4rem 1rem; background:var(--bg2); border:1px solid var(--border); border-radius:12px; margin-bottom:1.4rem; box-shadow:var(--shadow-sm); }
+  .timer-display { font-family:'JetBrains Mono',monospace; font-size:4rem; font-weight:700; line-height:1; color:var(--text); letter-spacing:2px; margin-bottom:.6rem; transition:color .3s; }
+  .timer-display.warning { color:var(--yellow); }
+  .timer-display.danger  { color:var(--red); animation:blink .55s infinite alternate; }
+  @keyframes blink { from{opacity:1;}to{opacity:.45;} }
+  .timer-label { color:var(--muted); font-size:.8rem; margin-bottom:.9rem; font-weight:500; }
+  .timer-btns { display:flex; gap:.65rem; justify-content:center; }
+  .timer-btn { padding:.52rem 1.25rem; border-radius:7px; border:1px solid var(--border); background:var(--bg3); color:var(--text); font-size:.84rem; font-family:'Plus Jakarta Sans','Noto Sans KR',sans-serif; cursor:pointer; font-weight:600; transition:all .18s; }
+  .timer-btn:hover { border-color:var(--border2); background:var(--bg); }
+  .timer-btn.primary { background:var(--teal); border-color:var(--teal); color:#fff; }
+  .timer-btn.primary:hover { background:#0f766e; border-color:#0f766e; }
+
+  /* ── CHECKLIST ─────────────────────────────────────────── */
+  .checklist { list-style:none; }
+  .checklist li { display:flex; align-items:flex-start; gap:.7rem; padding:.65rem .75rem; border-bottom:1px solid var(--border); font-size:.86rem; transition:background .14s; cursor:pointer; font-weight:500; }
+  .checklist li:hover { background:var(--bg3); }
+  .checklist li:last-child { border-bottom:none; }
+  .checklist li.checked { opacity:.5; text-decoration:line-through; }
+  .check-icon { width:19px; height:19px; border-radius:5px; border:1.5px solid var(--border2); flex-shrink:0; display:flex; align-items:center; justify-content:center; margin-top:1px; transition:all .18s; font-size:.68rem; color:transparent; }
+  .checklist li.checked .check-icon { background:var(--teal); border-color:var(--teal); color:#fff; }
+  .progress-bar-wrap { background:var(--bg3); border-radius:99px; height:5px; margin:.7rem 0 .35rem; overflow:hidden; }
+  .progress-bar { height:100%; background:var(--teal); border-radius:99px; transition:width .4s; }
+  .progress-label { font-size:.73rem; color:var(--muted); text-align:right; font-weight:500; }
+
+  /* ── COST TABLE ────────────────────────────────────────── */
+  .cost-table { width:100%; border-collapse:collapse; font-size:.82rem; }
+  .cost-table th { background:var(--bg3); color:var(--muted); padding:.55rem .85rem; text-align:left; font-size:.72rem; font-weight:700; letter-spacing:.5px; text-transform:uppercase; border-bottom:1px solid var(--border); }
+  .cost-table td { padding:.6rem .85rem; border-bottom:1px solid var(--border); font-weight:500; }
+  .cost-table tr:last-child td { border-bottom:none; }
+  .cost-table tr:hover td { background:var(--bg3); }
+  .cost-table .danger { color:var(--red); font-weight:700; font-family:'JetBrains Mono',monospace; }
+  .cost-table .warn   { color:var(--yellow); font-family:'JetBrains Mono',monospace; }
+  .cost-table .ok     { color:var(--green); font-size:.75rem; }
+
+  /* ── FOOTER ────────────────────────────────────────────── */
+  footer { border-top:1px solid var(--border); padding:1.8rem; text-align:center; color:var(--muted); font-size:.78rem; background:var(--bg2); margin-top:3rem; font-weight:500; }
+
+  /* ── RESPONSIVE ────────────────────────────────────────── */
+  @media (max-width:768px) {
+    .nav-links { display:none; } .hamburger { display:block; }
+    .scorer-wrap { grid-template-columns:1fr; }
+    .track-grid { grid-template-columns:1fr; }
+    .rubric-header,.rubric-row { grid-template-columns:1.8fr 1fr 1fr .5fr; }
+    .rubric-header > *:nth-child(3),.rubric-header > *:nth-child(4),
+    .rubric-row > *:nth-child(3),.rubric-row > *:nth-child(4) { display:none; }
+    .score-card { position:static; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">
+    ☁️ AWS
+    <span class="sep">/</span>
+    <span class="sub">3단계 통합 평가</span>
+  </div>
+  <div class="nav-links">
+    <a href="#" class="active" onclick="showTab('overview',this);return false">개요</a>
+    <a href="#" onclick="showTab('assignment',this);return false">과제 명세</a>
+    <a href="#" onclick="showTab('rubric',this);return false">루브릭</a>
+    <a href="#" onclick="showTab('scorer',this);return false">채점기 🔢</a>
+  </div>
+  <button class="hamburger" onclick="toggleMobile()">☰</button>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge"><span class="dot"></span> 더조은 강남 &nbsp;|&nbsp; 자바 &amp; 클라우드 풀스택 취업캠프</div>
+  <h1>3단계 <em>AWS 배포</em><br>통합 평가 가이드</h1>
+  <p>2단계 앱(Next.js 15 · Spring Boot 3.x · Java 21)을 AWS에 실제 배포<br>3가지 트랙 중 1개 선택 · 루브릭 정량 평가 · 총 100점</p>
+  <div class="score-ring">
+    <div class="num">100</div>
+    <div class="lbl">총점</div>
+  </div>
+  <div class="hero-chips">
+    <span class="chip chip-teal">🅐 3-Tier 직접 구축</span>
+    <span class="chip chip-green">🅑 EB + CodePipeline</span>
+    <span class="chip chip-orange">🅒 Amplify + EB</span>
+    <span class="chip chip-blue">☕ Java 21 LTS</span>
+    <span class="chip chip-purple">🗄️ RDS MySQL 8.0</span>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('overview',this)">📋 개요</button>
+  <button class="tab-btn" onclick="showTab('assignment',this)">📝 과제 명세</button>
+  <button class="tab-btn" onclick="showTab('rubric',this)">📊 루브릭</button>
+  <button class="tab-btn" onclick="showTab('scorer',this)">🔢 채점기</button>
+</div>
+
+<!-- ═══ TAB 1: 개요 ══════════════════════════════════════ -->
+<div id="tab-overview" class="tab-panel active">
+<div class="section">
+
+  <!-- 배점 구조 -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.9rem;margin-bottom:2rem">
+    <div class="card" style="border-color:var(--blue-mid);text-align:center;padding:1.2rem .9rem">
+      <div style="font-size:2.2rem;font-weight:800;color:var(--blue);line-height:1">40</div>
+      <div style="font-size:.72rem;color:var(--muted);margin-bottom:.3rem;font-weight:600">점</div>
+      <div style="font-weight:700;font-size:.88rem">🔵 공통 인프라</div>
+      <div style="font-size:.73rem;color:var(--muted);margin-top:.15rem">VPC·RDS·IAM·앱 동작</div>
+    </div>
+    <div class="card" style="border-color:var(--teal-mid);text-align:center;padding:1.2rem .9rem">
+      <div style="font-size:2.2rem;font-weight:800;color:var(--teal);line-height:1">40</div>
+      <div style="font-size:.72rem;color:var(--muted);margin-bottom:.3rem;font-weight:600">점</div>
+      <div style="font-weight:700;font-size:.88rem">🟢 트랙별 배포</div>
+      <div style="font-size:.73rem;color:var(--muted);margin-top:.15rem">A·B·C 중 선택 구현</div>
+    </div>
+    <div class="card" style="border-color:#ddd6fe;text-align:center;padding:1.2rem .9rem">
+      <div style="font-size:2.2rem;font-weight:800;color:var(--purple);line-height:1">20</div>
+      <div style="font-size:.72rem;color:var(--muted);margin-bottom:.3rem;font-weight:600">점</div>
+      <div style="font-weight:700;font-size:.88rem">🟣 연동·협업</div>
+      <div style="font-size:.73rem;color:var(--muted);margin-top:.15rem">GitHub·README·시연</div>
+    </div>
+  </div>
+
+  <!-- 트랙 선택 -->
+  <h2 class="section-title teal">배포 트랙 선택 (1개)</h2>
+  <div class="track-grid">
+    <div class="track-card" onclick="selectTrackCard('A')" id="tcard-A">
+      <div class="tk-icon">🏗️</div>
+      <div class="tk-name" style="color:var(--blue)">🅐 3-Tier 직접 구축</div>
+      <div class="tk-desc">VPC · ALB · ASG · EC2 · RDS<br>GitHub Actions CI/CD<br>수업 교재 기반 아키텍처</div>
+      <div class="tk-diff" style="color:var(--blue)">난이도 ★★★★★</div>
+      <span class="track-badge" style="background:var(--blue-light);color:var(--blue);border:1px solid var(--blue-mid)">High</span>
+    </div>
+    <div class="track-card" onclick="selectTrackCard('B')" id="tcard-B">
+      <div class="tk-icon">⚙️</div>
+      <div class="tk-name" style="color:var(--green)">🅑 EB + CodePipeline</div>
+      <div class="tk-desc">Elastic Beanstalk · RDS<br>CodePipeline 자동 배포<br>관리형 PaaS 방식</div>
+      <div class="tk-diff" style="color:var(--green)">난이도 ★★★☆☆</div>
+      <span class="track-badge" style="background:var(--green-light);color:var(--green);border:1px solid var(--green-mid)">Mid</span>
+    </div>
+    <div class="track-card" onclick="selectTrackCard('C')" id="tcard-C">
+      <div class="tk-icon">🚀</div>
+      <div class="tk-name" style="color:var(--orange)">🅒 Amplify + EB</div>
+      <div class="tk-desc">AWS Amplify · EB 백엔드<br>RDS · CORS 연동<br>프론트 간편 배포</div>
+      <div class="tk-diff" style="color:var(--orange)">난이도 ★★☆☆☆</div>
+      <span class="track-badge" style="background:var(--orange-light);color:var(--orange);border:1px solid var(--orange-mid)">Low-Mid</span>
+    </div>
+  </div>
+  <div class="info-box warn"><div class="icon">⚠️</div><div class="body">3가지 트랙의 배점 기준(루브릭)은 동일합니다. 본인이 가장 자신 있는 트랙을 선택하세요.</div></div>
+
+  <!-- 시나리오 -->
+  <h2 class="section-title teal" style="margin-top:1.8rem">평가 시나리오</h2>
+  <div class="card">
+    <p style="font-size:.9rem;line-height:1.85;color:var(--muted)">
+      <strong style="color:var(--text)">2단계에서 완성한 도서 관리 시스템</strong>(Next.js 15 + Spring Boot 3.x · Java 21)을 선택한 트랙으로 AWS에 배포합니다.<br>
+      배포 완료 후 외부 URL에서 <strong style="color:var(--teal)">메모 CRUD 전체 기능</strong>이 정상 동작해야 합니다.
+    </p>
+    <div class="info-box error" style="margin-top:.8rem">
+      <div class="icon">❌</div>
+      <div class="body"><strong>배포 구성</strong>(VPC 설정·환경 변수·CI/CD 파일)은 반드시 직접 구현해야 합니다.</div>
+    </div>
+  </div>
+
+  <!-- 진행 순서 -->
+  <h2 class="section-title green" style="margin-top:1.8rem">평가 진행 순서</h2>
+  <div class="card" style="padding:1rem 1.2rem">
+    <ol style="padding-left:1.1rem;font-size:.87rem;line-height:2.1;color:var(--muted)">
+      <li><strong style="color:var(--text)">트랙 선택 및 GitHub URL · 배포 URL 제출</strong></li>
+      <li><strong style="color:var(--text)">배포 URL 강사 확인</strong> — 브라우저 직접 접속</li>
+      <li><strong style="color:var(--text)">3분 라이브 시연</strong> — 목록 조회 → 등록 → 수정 → 삭제</li>
+      <li><strong style="color:var(--text)">질문 1~2개</strong> — 선택 트랙 아키텍처 흐름 설명</li>
+      <li><strong style="color:var(--text)">루브릭 채점 &amp; 피드백</strong></li>
+    </ol>
+  </div>
+
+  <!-- 비용 정리 -->
+  <h2 class="section-title orange" style="margin-top:1.8rem">평가 후 리소스 정리 순서 (비용 절감)</h2>
+  <div class="card" style="padding:0;overflow:hidden">
+    <table class="cost-table">
+      <thead><tr><th>서비스</th><th>시간당 요금</th><th>정리 순서</th></tr></thead>
+      <tbody>
+        <tr><td>NAT Gateway</td><td class="danger">~$0.045/h (최고)</td><td class="ok">① 먼저 삭제</td></tr>
+        <tr><td>ALB × 2 (FE + BE)</td><td class="danger">~$0.036/h</td><td class="ok">② ALB 삭제</td></tr>
+        <tr><td>EC2 t3.micro × 4</td><td class="warn">~$0.042/h</td><td class="ok">③ ASG 최솟값 0</td></tr>
+        <tr><td>RDS db.t3.micro</td><td class="warn">~$0.026/h</td><td class="ok">④ RDS 삭제</td></tr>
+        <tr><td>Elastic Beanstalk</td><td class="warn">~$0.03~0.05/h</td><td class="ok">⑤ EB 환경 종료</td></tr>
+        <tr><td>Amplify</td><td style="color:var(--muted)">빌드 분당 과금</td><td class="ok">⑥ 앱 삭제(선택)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+</div>
+
+<!-- ═══ TAB 2: 과제 명세 ════════════════════════════════ -->
+<div id="tab-assignment" class="tab-panel">
+<div class="section">
+
+  <!-- 공통 요구사항 -->
+  <h2 class="section-title blue">공통 구현 요구사항 (트랙 무관 전원 필수)</h2>
+  <div class="card" style="padding:0;overflow:hidden">
+    <table class="req-table">
+      <thead><tr><th>항목</th><th>구현 내용</th><th>완료 조건</th></tr></thead>
+      <tbody>
+        <tr><td><span class="req-num" style="background:var(--blue-light);color:var(--blue)">1</span> VPC 네트워크</td><td>퍼블릭·프라이빗 서브넷 분리, IGW + NAT GW, SG 체인 구성</td><td><span class="cond-chip" style="background:var(--green-light);color:var(--green);border:1px solid var(--green-mid)">서브넷 available</span></td></tr>
+        <tr><td><span class="req-num" style="background:var(--blue-light);color:var(--blue)">2</span> RDS MySQL 8.0</td><td>DB 서브넷 그룹, 퍼블릭 액세스 아니요, schema.sql 실행 (3건 확인)</td><td><span class="cond-chip" style="background:var(--green-light);color:var(--green);border:1px solid var(--green-mid)">RDS available</span></td></tr>
+        <tr><td><span class="req-num" style="background:var(--blue-light);color:var(--blue)">3</span> IAM 권한</td><td>EC2 Role(SSM+S3+CloudWatch), CI/CD IAM User 인라인 정책 최소 권한</td><td><span class="cond-chip" style="background:var(--green-light);color:var(--green);border:1px solid var(--green-mid)">역할 생성 완료</span></td></tr>
+        <tr><td><span class="req-num" style="background:var(--blue-light);color:var(--blue)">4</span> 앱 정상 동작</td><td>배포 URL에서 CRUD 전 동작, /actuator/health → UP, DB 연결 포함</td><td><span class="cond-chip" style="background:var(--green-light);color:var(--green);border:1px solid var(--green-mid)">브라우저 CRUD 동작</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- SG 체인 -->
+  <h2 class="section-title blue" style="margin-top:1.8rem">보안 그룹 체인 (트랙 A 필수)</h2>
+  <div class="card">
+    <div class="sg-chain">
+      <span class="sg-box" style="background:var(--blue-light);color:var(--blue);border:1px solid var(--blue-mid)">FE-ALB-SG</span>
+      <span class="sg-arr">→</span>
+      <span class="sg-box" style="background:var(--blue-light);color:var(--blue);border:1px solid var(--blue-mid)">FE-EC2-SG</span>
+      <span class="sg-arr">→</span>
+      <span class="sg-box" style="background:var(--green-light);color:var(--green);border:1px solid var(--green-mid)">BE-ALB-SG</span>
+      <span class="sg-arr">→</span>
+      <span class="sg-box" style="background:var(--green-light);color:var(--green);border:1px solid var(--green-mid)">BE-EC2-SG</span>
+      <span class="sg-arr">→</span>
+      <span class="sg-box" style="background:var(--orange-light);color:var(--orange);border:1px solid var(--orange-mid)">DB-SG</span>
+    </div>
+    <p style="font-size:.78rem;color:var(--muted);margin-top:.6rem;font-weight:500">각 SG는 앞 단계의 SG ID만 소스로 허용합니다. IP(0.0.0.0/0)로 열면 보안 체인이 깨집니다.</p>
+  </div>
+
+  <!-- 트랙별 탭 -->
+  <h2 class="section-title teal" style="margin-top:1.8rem">트랙별 구현 요구사항</h2>
+  <div class="sub-tab-bar">
+    <button class="sub-tab-btn stab-A active" id="atab-A" onclick="showAssignTrack('A',this)">🅐 3-Tier 직접 구축</button>
+    <button class="sub-tab-btn stab-B" id="atab-B" onclick="showAssignTrack('B',this)">🅑 EB + CodePipeline</button>
+    <button class="sub-tab-btn stab-C" id="atab-C" onclick="showAssignTrack('C',this)">🅒 Amplify + EB</button>
+  </div>
+
+  <!-- 트랙 A -->
+  <div id="assign-A">
+    <div style="font-size:.74rem;color:var(--muted);margin-bottom:.7rem;font-style:italic">※ 참고: fullstack_guide_v6.docx 4~6장 — VPC 설계, ALB+ASG 이중화, GitHub Actions deploy.yml</div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="req-table">
+        <thead><tr><th>항목</th><th>구현 내용</th><th>완료 조건</th></tr></thead>
+        <tbody>
+          <tr><td><span class="req-num" style="background:var(--blue-light);color:var(--blue)">1</span> ALB + ASG</td><td>FE ALB(Internet-facing) + BE ALB(Internal), 멀티AZ EC2 최소 2대, TG 헬스체크 FE:/health BE:/actuator/health</td><td><span class="cond-chip" style="background:var(--green-light);color:var(--green);border:1px solid var(--green-mid)">TG 2개 Healthy</span></td></tr>
+          <tr><td><span class="req-num" style="background:var(--blue-light);color:var(--blue)">2</span> User Data & systemd</td><td>BE: openjdk-21, /opt/app/.env(DB_HOST·CORS_ORIGINS), systemd note-app.service<br>FE: Node 20 + PM2 + Nginx 리버스프록시(/api/* → BE ALB:8080)</td><td><span class="cond-chip" style="background:var(--green-light);color:var(--green);border:1px solid var(--green-mid)">note-app active</span></td></tr>
+          <tr><td><span class="req-num" style="background:var(--blue-light);color:var(--blue)">3</span> GitHub Actions</td><td>4-Job: build-backend → build-frontend(NEXT_PUBLIC_API_URL 주입) → upload-to-s3 → deploy-backend+deploy-frontend (SSM Rolling)</td><td><span class="cond-chip" style="background:var(--green-light);color:var(--green);border:1px solid var(--green-mid)">4 Job Success</span></td></tr>
+          <tr><td><span class="req-num" style="background:var(--blue-light);color:var(--blue)">4</span> 이중화 검증</td><td>Backend EC2 1대 강제 종료 후 HTTP 200 유지, ASG 자가 복구(2~3분), RDS Multi-AZ 설정 증적 캡처</td><td><span class="cond-chip" style="background:var(--green-light);color:var(--green);border:1px solid var(--green-mid)">HTTP 200 유지</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="font-size:.82rem;font-weight:600;color:var(--blue);margin:.9rem 0 .4rem">GitHub Actions deploy.yml 구조 (4-Job)</div>
+    <div class="code-block">
+      <div class="code-hdr"><div class="code-dots"><span></span><span></span><span></span></div><span>.github/workflows/deploy.yml</span></div>
+      <pre><span class="kw">name:</span> Full-Stack Deploy
+<span class="kw">on:</span>
+  push: { branches: [ main ] }
+<span class="kw">jobs:</span>
+  build-backend:    <span class="cm"># Job 1: ./gradlew test bootJar</span>
+  build-frontend:   <span class="cm"># Job 2: npm run build (NEXT_PUBLIC_API_URL 주입)</span>
+  upload-to-s3:     <span class="cm"># Job 3: needs[1,2] → S3 업로드</span>
+  deploy-backend:   <span class="cm"># Job 4-A: SSM Rolling 배포</span>
+  deploy-frontend:  <span class="cm"># Job 4-B: SSM Rolling 배포</span>
+<span class="cm"># Secrets: AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / AWS_ACCOUNT_ID / BACKEND_ALB_DNS</span></pre>
+    </div>
+    <div class="info-box warn"><div class="icon">⚠️</div><div class="body">최초 배포 전 S3에 JAR와 Frontend zip 수동 업로드 필수. 아티팩트 없으면 SSM 배포 실패합니다.</div></div>
+  </div>
+
+  <!-- 트랙 B -->
+  <div id="assign-B" style="display:none">
+    <div style="font-size:.74rem;color:var(--muted);margin-bottom:.7rem;font-style:italic">※ 백엔드 EB 배포 + RDS 연동 + CodePipeline 3단계 자동 배포</div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="req-table">
+        <thead><tr><th>항목</th><th>구현 내용</th><th>완료 조건</th></tr></thead>
+        <tbody>
+          <tr><td><span class="req-num" style="background:var(--green-light);color:var(--green)">1</span> EB 환경 생성</td><td>플랫폼: Java 21 (Corretto 21), 환경 유형: 로드 밸런싱, 환경 변수(DB_HOST·DB_PASS·CORS_ORIGINS·SERVER_PORT) 설정</td><td><span class="cond-chip" style="background:var(--green-light);color:var(--green);border:1px solid var(--green-mid)">EB 상태 OK(녹색)</span></td></tr>
+          <tr><td><span class="req-num" style="background:var(--green-light);color:var(--green)">2</span> RDS SG 체인</td><td>EB EC2-SG → RDS-SG 소스 체인, 퍼블릭 액세스 '아니요', /actuator/health DB UP 확인</td><td><span class="cond-chip" style="background:var(--green-light);color:var(--green);border:1px solid var(--green-mid)">health DB: UP</span></td></tr>
+          <tr><td><span class="req-num" style="background:var(--green-light);color:var(--green)">3</span> CodePipeline</td><td>Source(GitHub) → Build(CodeBuild: ./gradlew test bootJar, buildspec.yml) → Deploy(EB) 3단계 파이프라인 구성</td><td><span class="cond-chip" style="background:var(--green-light);color:var(--green);border:1px solid var(--green-mid)">파이프라인 Succeeded</span></td></tr>
+          <tr><td><span class="req-num" style="background:var(--green-light);color:var(--green)">4</span> EB 고도화</td><td>헬스체크 경로 /actuator/health, ASG 최솟값 2·멀티AZ, 롤링 배포 정책 적용</td><td><span class="cond-chip" style="background:var(--green-light);color:var(--green);border:1px solid var(--green-mid)">EC2 2대 Healthy</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="font-size:.82rem;font-weight:600;color:var(--green);margin:.9rem 0 .4rem">buildspec.yml + Procfile</div>
+    <div class="code-block">
+      <div class="code-hdr"><div class="code-dots"><span></span><span></span><span></span></div><span>buildspec.yml / Procfile</span></div>
+      <pre><span class="cm"># buildspec.yml</span>
+<span class="kw">version:</span> <span class="num2">0.2</span>
+<span class="kw">phases:</span>
+  <span class="kw">install:</span>
+    <span class="kw">runtime-versions:</span>
+      <span class="kw">java:</span> <span class="str">corretto21</span>
+  <span class="kw">build:</span>
+    <span class="kw">commands:</span> [ <span class="str">"cd backend && chmod +x gradlew && ./gradlew test bootJar --no-daemon"</span> ]
+  <span class="kw">post_build:</span>
+    <span class="kw">commands:</span> [ <span class="str">"cp backend/build/libs/note-app.jar ."</span> ]
+<span class="kw">artifacts:</span>
+  <span class="kw">files:</span> [ <span class="str">note-app.jar</span>, <span class="str">Procfile</span>, <span class="str">.ebextensions/**/*</span> ]
+
+<span class="cm"># Procfile (프로젝트 루트)</span>
+web: java -Dserver.port=5000 -jar note-app.jar</pre>
+    </div>
+  </div>
+
+  <!-- 트랙 C -->
+  <div id="assign-C" style="display:none">
+    <div style="font-size:.74rem;color:var(--muted);margin-bottom:.7rem;font-style:italic">※ Amplify로 Next.js 자동 빌드·배포 + EB 백엔드 연동</div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="req-table">
+        <thead><tr><th>항목</th><th>구현 내용</th><th>완료 조건</th></tr></thead>
+        <tbody>
+          <tr><td><span class="req-num" style="background:var(--orange-light);color:var(--orange)">1</span> Amplify 앱 생성</td><td>GitHub 연결, Next.js 자동 감지, amplify.yml에서 NEXT_PUBLIC_API_URL 환경 변수 주입</td><td><span class="cond-chip" style="background:var(--green-light);color:var(--green);border:1px solid var(--green-mid)">빌드 성공·URL 접속</span></td></tr>
+          <tr><td><span class="req-num" style="background:var(--orange-light);color:var(--orange)">2</span> EB 백엔드 + CORS</td><td>EB Java 21 환경 생성, 환경 변수 설정, CORS_ORIGINS에 Amplify 도메인(*.amplifyapp.com) 등록</td><td><span class="cond-chip" style="background:var(--green-light);color:var(--green);border:1px solid var(--green-mid)">EB OK·API 호출 성공</span></td></tr>
+          <tr><td><span class="req-num" style="background:var(--orange-light);color:var(--orange)">3</span> Amplify CI/CD</td><td>main 브랜치 git push → 자동 빌드·배포, 빌드 히스토리 3회 이상, 로그 오류 없음</td><td><span class="cond-chip" style="background:var(--green-light);color:var(--green);border:1px solid var(--green-mid)">자동 배포 완료</span></td></tr>
+          <tr><td><span class="req-num" style="background:var(--orange-light);color:var(--orange)">4</span> HTTPS 설정</td><td>Amplify 기본 도메인(.amplifyapp.com) HTTPS 정상 동작, 또는 커스텀 도메인 + ACM 인증서</td><td><span class="cond-chip" style="background:var(--green-light);color:var(--green);border:1px solid var(--green-mid)">https:// 접속 성공</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="font-size:.82rem;font-weight:600;color:var(--orange);margin:.9rem 0 .4rem">amplify.yml + 환경 변수</div>
+    <div class="code-block">
+      <div class="code-hdr"><div class="code-dots"><span></span><span></span><span></span></div><span>amplify.yml</span></div>
+      <pre><span class="kw">version:</span> <span class="num2">1</span>
+<span class="kw">frontend:</span>
+  <span class="kw">phases:</span>
+    <span class="kw">preBuild:</span>
+      <span class="kw">commands:</span> [ <span class="str">"cd frontend"</span>, <span class="str">"npm ci"</span> ]
+    <span class="kw">build:</span>
+      <span class="kw">commands:</span> [ <span class="str">"npm run build"</span> ]
+  <span class="kw">artifacts:</span>
+    <span class="kw">baseDirectory:</span> <span class="str">frontend/.next</span>
+    <span class="kw">files:</span> [ <span class="str">'**/*'</span> ]
+  <span class="kw">cache:</span>
+    <span class="kw">paths:</span> [ <span class="str">frontend/node_modules/**/*</span> ]
+
+<span class="cm"># Amplify 콘솔 환경 변수</span>
+<span class="cm"># NEXT_PUBLIC_API_URL = http://[EB 환경 URL]</span>
+<span class="cm"># EB CORS_ORIGINS = https://main.[앱ID].amplifyapp.com</span></pre>
+    </div>
+  </div>
+
+  <!-- 제출 체크리스트 -->
+  <h2 class="section-title green" style="margin-top:1.8rem">제출 체크리스트</h2>
+  <div class="card" style="padding:0">
+    <ul class="checklist" id="checklist">
+      <li onclick="toggleCheck(this)"><div class="check-icon">✓</div>선택 트랙 명시 + GitHub 레포 URL 제출 (Public 또는 강사 초대)</li>
+      <li onclick="toggleCheck(this)"><div class="check-icon">✓</div>배포된 서비스 URL 제출 (FE ALB DNS / EB URL / Amplify URL)</li>
+      <li onclick="toggleCheck(this)"><div class="check-icon">✓</div>README.md — 트랙, 배포 URL, 아키텍처 설명, AWS 서비스 목록</li>
+      <li onclick="toggleCheck(this)"><div class="check-icon">✓</div>GitHub 커밋 3회 이상 (feat/fix/infra 등 의미 있는 메시지)</li>
+      <li onclick="toggleCheck(this)"><div class="check-icon">✓</div>RDS 퍼블릭 액세스 '아니요' 설정 확인</li>
+      <li onclick="toggleCheck(this)"><div class="check-icon">✓</div>/actuator/health → { "status": "UP", db: "UP" } 확인</li>
+      <li onclick="toggleCheck(this)"><div class="check-icon">✓</div>평가 당일 배포 URL 라이브 시연 가능 상태 유지</li>
+      <li onclick="toggleCheck(this)"><div class="check-icon">✓</div>평가 종료 후 NAT GW → ALB → ASG → RDS 순서로 리소스 정리</li>
+    </ul>
+    <div style="padding:.7rem 1rem">
+      <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+      <div class="progress-label" id="progressLabel">0 / 8 완료</div>
+    </div>
+  </div>
+  <div class="info-box tip"><div class="icon">💡</div><div class="body"><strong>CORS 트러블슈팅:</strong> BE ALB DNS 또는 EB URL을 CORS_ORIGINS에 정확히 등록했는지 확인하세요. Amplify 트랙은 *.amplifyapp.com 패턴으로 등록.</div></div>
+
+</div>
+</div>
+
+<!-- ═══ TAB 3: 루브릭 ════════════════════════════════════ -->
+<div id="tab-rubric" class="tab-panel">
+<div class="section">
+
+  <!-- 공통 -->
+  <div class="area-label blue">🔵 영역 1: 공통 — AWS 기본 인프라 (40점) &nbsp;·&nbsp; 4항목 × 4점 × 2.5</div>
+  <div style="font-size:.71rem;color:var(--muted);margin:.38rem 0 .6rem;font-style:italic">※ 트랙 무관 전원 동일 기준 적용</div>
+  <div class="rubric-header"><div>항목</div><div>4점 (우수)</div><div>3점 (양호)</div><div>2점 (기본)</div><div>1점 (미흡)</div><div style="text-align:center">배점</div></div>
+  <div class="rubric-row"><div class="item-name">① VPC 네트워크</div><div class="s4">서브넷 분리·IGW+NAT GW·SG 체인 5단계 완성</div><div class="s3">대부분 구성, SG 체인 일부 IP 직접 허용</div><div class="s2">VPC·서브넷만, IGW 또는 NAT 누락</div><div class="s1">VPC 미생성, 기본 VPC 사용</div><div class="pts">4pt</div></div>
+  <div class="rubric-row"><div class="item-name">② RDS 연동</div><div class="s4">RDS 생성·퍼블릭아니요·SG체인·schema.sql 3행·연결 정상</div><div class="s3">생성·연결됨, 퍼블릭'예' 또는 초기데이터 미삽입</div><div class="s2">RDS 생성, SpringBoot 연결 실패</div><div class="s1">RDS 미생성, 로컬 DB 사용</div><div class="pts">4pt</div></div>
+  <div class="rubric-row"><div class="item-name">③ IAM 권한</div><div class="s4">EC2 Role(SSM+S3+CW)+CI/CD IAM 인라인정책 최소권한</div><div class="s3">생성됨, AdministratorAccess 과다 부여</div><div class="s2">EC2 Role만, CI/CD IAM 미생성</div><div class="s1">IAM 미설정, 루트 계정 사용</div><div class="pts">4pt</div></div>
+  <div class="rubric-row"><div class="item-name">④ 앱 동작</div><div class="s4">CRUD 전 동작·/actuator/health DB:UP·serverIp 확인</div><div class="s3">조회·등록 동작, 수정·삭제 오류</div><div class="s2">URL 접속, API 일부만 동작</div><div class="s1">URL 접속 불가, 앱 미기동</div><div class="pts">4pt</div></div>
+
+  <!-- 트랙별 -->
+  <div class="area-label teal" style="margin-top:1.5rem">🟢 영역 2: 트랙별 배포 방식 (40점) &nbsp;·&nbsp; 선택 트랙 기준 적용</div>
+  <div class="sub-tab-bar" style="margin-top:.6rem">
+    <button class="sub-tab-btn stab-A active" id="rtab-A" onclick="showRubricTrack('A',this)">🅐 3-Tier</button>
+    <button class="sub-tab-btn stab-B" id="rtab-B" onclick="showRubricTrack('B',this)">🅑 EB + Pipeline</button>
+    <button class="sub-tab-btn stab-C" id="rtab-C" onclick="showRubricTrack('C',this)">🅒 Amplify + EB</button>
+  </div>
+
+  <div id="rubric-A">
+    <div style="font-size:.71rem;color:var(--muted);margin-bottom:.6rem;font-style:italic">※ fullstack_guide_v6 기반 | ALB+ASG 이중화 + GitHub Actions 4-Job</div>
+    <div class="rubric-header"><div>항목</div><div>4점 (우수)</div><div>3점 (양호)</div><div>2점 (기본)</div><div>1점 (미흡)</div><div style="text-align:center">배점</div></div>
+    <div class="rubric-row"><div class="item-name">① ALB + ASG</div><div class="s4">FE/BE ALB 구분·멀티AZ 2대·TG Healthy·serverIp 교대</div><div class="s3">ALB+ASG 구성, 단일AZ 또는 1대만 Healthy</div><div class="s2">ALB만, ASG 미사용</div><div class="s1">ALB·ASG 미사용</div><div class="pts">4pt</div></div>
+    <div class="rubric-row"><div class="item-name">② User Data & systemd</div><div class="s4">BE:openjdk-21·.env·systemd / FE:Node·PM2·Nginx 프록시</div><div class="s3">대부분 동작, 환경변수 하드코딩 또는 Nginx 미설정</div><div class="s2">일부 실행, 수동 설치 필요</div><div class="s1">User Data 없이 전체 수동</div><div class="pts">4pt</div></div>
+    <div class="rubric-row"><div class="item-name">③ GitHub Actions</div><div class="s4">4개 Job 모두 Success, git push 자동배포, SSM Rolling 무중단</div><div class="s3">3개 이하 성공 또는 수동 S3+SSM 혼용</div><div class="s2">deploy.yml 작성, 빌드만 성공</div><div class="s1">GitHub Actions 미사용</div><div class="pts">4pt</div></div>
+    <div class="rubric-row"><div class="item-name">④ 이중화 검증</div><div class="s4">EC2 종료 후 HTTP 200 유지·ASG 자가복구·RDS Multi-AZ 증적</div><div class="s3">시나리오 수행, 서비스 유지, 증적 일부 누락</div><div class="s2">시나리오 시도, 서비스 중단</div><div class="s1">이중화 검증 미수행</div><div class="pts">4pt</div></div>
+  </div>
+
+  <div id="rubric-B" style="display:none">
+    <div style="font-size:.71rem;color:var(--muted);margin-bottom:.6rem;font-style:italic">※ EB Java 21 플랫폼 + RDS 연동 + CodePipeline 3단계 자동 배포</div>
+    <div class="rubric-header"><div>항목</div><div>4점 (우수)</div><div>3점 (양호)</div><div>2점 (기본)</div><div>1점 (미흡)</div><div style="text-align:center">배점</div></div>
+    <div class="rubric-row"><div class="item-name">① EB 환경 구성</div><div class="s4">Java 21 환경·환경변수·.ebextensions/Procfile 적용</div><div class="s3">EB 생성됨, 환경변수 일부 누락</div><div class="s2">EB 생성됨, 배포 실패(Degraded)</div><div class="s1">EB 미생성, 샘플 앱만</div><div class="pts">4pt</div></div>
+    <div class="rubric-row"><div class="item-name">② RDS·EB SG 체인</div><div class="s4">EB-SG↔RDS-SG 체인·DB UP·퍼블릭아니요 유지</div><div class="s3">RDS 연결됨, 퍼블릭'예' 또는 SG 0.0.0.0/0</div><div class="s2">RDS 연결 시도, Degraded 상태</div><div class="s1">RDS 미연결</div><div class="pts">4pt</div></div>
+    <div class="rubric-row"><div class="item-name">③ CodePipeline</div><div class="s4">Source→Build(CodeBuild)→Deploy(EB) 3단계 Succeeded</div><div class="s3">2단계 파이프라인 또는 Build 제외</div><div class="s2">파이프라인 생성, Build·Deploy 실패</div><div class="s1">CodePipeline 미사용</div><div class="pts">4pt</div></div>
+    <div class="rubric-row"><div class="item-name">④ EB 고도화</div><div class="s4">헬스체크 /actuator/health·ASG Min2·멀티AZ·롤링 배포·OK</div><div class="s3">헬스체크 경로 설정, 단일AZ 또는 Min1</div><div class="s2">기본 설정 그대로</div><div class="s1">단일 인스턴스, 변경 없음</div><div class="pts">4pt</div></div>
+  </div>
+
+  <div id="rubric-C" style="display:none">
+    <div style="font-size:.71rem;color:var(--muted);margin-bottom:.6rem;font-style:italic">※ Amplify Next.js 자동 배포 + EB 백엔드 연동 + CORS 설정</div>
+    <div class="rubric-header"><div>항목</div><div>4점 (우수)</div><div>3점 (양호)</div><div>2점 (기본)</div><div>1점 (미흡)</div><div style="text-align:center">배점</div></div>
+    <div class="rubric-row"><div class="item-name">① Amplify 앱 & 빌드</div><div class="s4">GitHub 연결·API_URL 주입·빌드 성공·URL 접속</div><div class="s3">배포됨, 환경변수 미설정 하드코딩</div><div class="s2">빌드 성공, 배포 실패(404)</div><div class="s1">Amplify 미사용</div><div class="pts">4pt</div></div>
+    <div class="rubric-row"><div class="item-name">② EB 백엔드 & CORS</div><div class="s4">EB Java 21·Amplify 도메인 CORS_ORIGINS 등록·API 정상</div><div class="s3">EB 동작됨, CORS 도메인 미등록</div><div class="s2">EB 생성됨, Amplify API 접근 불가</div><div class="s1">EB 미구성</div><div class="pts">4pt</div></div>
+    <div class="rubric-row"><div class="item-name">③ Amplify CI/CD</div><div class="s4">git push → 자동 빌드·배포·히스토리 3회+·오류 없음</div><div class="s3">자동 배포 동작, 빌드 시간 과다</div><div class="s2">수동 배포, 자동 배포 미구성</div><div class="s1">Amplify CI/CD 미구성</div><div class="pts">4pt</div></div>
+    <div class="rubric-row"><div class="item-name">④ HTTPS 설정</div><div class="s4">.amplifyapp.com HTTPS 동작 또는 커스텀 도메인+ACM</div><div class="s3">HTTPS 기본 도메인, 커스텀 미완성</div><div class="s2">HTTP만 동작, HTTPS 미설정</div><div class="s1">도메인 접속 불가</div><div class="pts">4pt</div></div>
+  </div>
+
+  <!-- 협업 -->
+  <div class="area-label purple" style="margin-top:1.5rem">🟣 영역 3: 연동·검증·협업 (20점)</div>
+  <div style="font-size:.71rem;color:var(--muted);margin:.38rem 0 .6rem;font-style:italic">※ 트랙 무관 동일 기준 | GitHub URL + 배포 URL 미제출 시 0점</div>
+  <div class="rubric-header" style="grid-template-columns:2fr 2.2fr 1.8fr .55fr"><div>항목</div><div>달성 (만점)</div><div>부분 달성</div><div style="text-align:center">배점</div></div>
+  <div class="rubric-row" style="grid-template-columns:2fr 2.2fr 1.8fr .55fr"><div class="item-name">① 프론트↔백 연동</div><div class="s4">배포 URL CRUD 전 동작, Network 탭 실제 API 호출 확인</div><div class="s3">조회·등록만 동작, 수정·삭제 오류</div><div class="pts">8pt</div></div>
+  <div class="rubric-row" style="grid-template-columns:2fr 2.2fr 1.8fr .55fr"><div class="item-name">② GitHub 커밋</div><div class="s4">의미 있는 커밋 3회+, feat/fix/infra 메시지, deploy.yml 포함</div><div class="s3">커밋 있음, 메시지 불명확 또는 1~2회</div><div class="pts">4pt</div></div>
+  <div class="rubric-row" style="grid-template-columns:2fr 2.2fr 1.8fr .55fr"><div class="item-name">③ README 문서</div><div class="s4">배포 URL·트랙·아키텍처·실행방법·AWS 서비스 목록 포함</div><div class="s3">배포 URL만 작성, 아키텍처 설명 없음</div><div class="pts">4pt</div></div>
+  <div class="rubric-row" style="grid-template-columns:2fr 2.2fr 1.8fr .55fr"><div class="item-name">④ 시연·설명</div><div class="s4">라이브 CRUD 시연, 아키텍처 흐름 질문 답변 가능</div><div class="s3">일부 기능 시연, 구조 설명 보충 필요</div><div class="pts">4pt</div></div>
+
+  <!-- 가산점 -->
+  <div class="area-label" style="margin-top:1.5rem;background:var(--purple-light);color:var(--purple);border-left:3px solid var(--purple)">⭐ 가산점 항목 (최대 +10점)</div>
+  <div style="display:flex;flex-direction:column;gap:.38rem">
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:.65rem 1rem"><div style="font-size:.84rem;font-weight:500">RDS Multi-AZ + 페일오버 시나리오 테스트 (증적 캡처 제출)</div><div style="color:var(--purple);font-weight:700;font-family:'JetBrains Mono';font-size:.88rem;white-space:nowrap;margin-left:.5rem">+4pt</div></div>
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:.65rem 1rem"><div style="font-size:.84rem;font-weight:500">CI/CD 배포 중 HTTP 200 무중단 확인 (배포 로그 + curl 결과)</div><div style="color:var(--purple);font-weight:700;font-family:'JetBrains Mono';font-size:.88rem;white-space:nowrap;margin-left:.5rem">+3pt</div></div>
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:.65rem 1rem"><div style="font-size:.84rem;font-weight:500">커스텀 도메인 + HTTPS (Route 53 또는 Amplify 커스텀 도메인 + ACM)</div><div style="color:var(--purple);font-weight:700;font-family:'JetBrains Mono';font-size:.88rem;white-space:nowrap;margin-left:.5rem">+3pt</div></div>
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:.65rem 1rem"><div style="font-size:.84rem;font-weight:500">CloudWatch 대시보드 (EC2 CPU + ALB 4xx/5xx + RDS 커넥션 지표)</div><div style="color:var(--purple);font-weight:700;font-family:'JetBrains Mono';font-size:.88rem;white-space:nowrap;margin-left:.5rem">+2pt</div></div>
+  </div>
+
+</div>
+</div>
+
+<!-- ═══ TAB 4: 채점기 ════════════════════════════════════ -->
+<div id="tab-scorer" class="tab-panel">
+<div class="section">
+
+  <!-- 타이머 -->
+  <div class="timer-wrap">
+    <div style="font-size:.72rem;color:var(--muted);margin-bottom:.35rem;letter-spacing:.8px;text-transform:uppercase;font-weight:600">⏱ 시연 타이머</div>
+    <div class="timer-display" id="timerDisplay">03:00</div>
+    <div class="timer-label" id="timerLabel">시연 시작 전 · 3분 카운트다운</div>
+    <div class="timer-btns">
+      <button class="timer-btn primary" id="timerStartBtn" onclick="startTimer()">▶ 시작</button>
+      <button class="timer-btn" onclick="resetTimer()">↺ 리셋</button>
+      <button class="timer-btn" onclick="setTimer(5)">5분</button>
+    </div>
+  </div>
+
+  <div class="scorer-wrap">
+    <!-- 좌: 점수 입력 -->
+    <div>
+
+      <!-- 트랙 선택 -->
+      <div style="margin-bottom:1rem">
+        <div style="font-size:.77rem;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;margin-bottom:.5rem">학생 배포 트랙 선택</div>
+        <div class="track-select-bar">
+          <button class="track-sel-btn" id="sel-A" onclick="selectScorerTrack('A')">🅐 3-Tier</button>
+          <button class="track-sel-btn" id="sel-B" onclick="selectScorerTrack('B')">🅑 EB+Pipeline</button>
+          <button class="track-sel-btn" id="sel-C" onclick="selectScorerTrack('C')">🅒 Amplify+EB</button>
+        </div>
+      </div>
+
+      <!-- 공통 -->
+      <div class="score-area">
+        <div class="score-area-title" style="color:var(--blue)">
+          <span>🔵 공통 — AWS 기본 인프라</span>
+          <span style="font-family:'JetBrains Mono';font-size:.88rem;color:var(--blue)" id="com-total">0 / 16</span>
+        </div>
+        <div class="score-item"><div class="score-item-label">① VPC 네트워크<small>SG 체인 5단계, IGW+NAT GW</small></div><div class="score-btns"><button class="score-btn s4" onclick="setScore('c1',4,this)">4</button><button class="score-btn s3" onclick="setScore('c1',3,this)">3</button><button class="score-btn s2" onclick="setScore('c1',2,this)">2</button><button class="score-btn s1" onclick="setScore('c1',1,this)">1</button></div></div>
+        <div class="score-item"><div class="score-item-label">② RDS 연동<small>퍼블릭아니요, SG체인, schema.sql</small></div><div class="score-btns"><button class="score-btn s4" onclick="setScore('c2',4,this)">4</button><button class="score-btn s3" onclick="setScore('c2',3,this)">3</button><button class="score-btn s2" onclick="setScore('c2',2,this)">2</button><button class="score-btn s1" onclick="setScore('c2',1,this)">1</button></div></div>
+        <div class="score-item"><div class="score-item-label">③ IAM 권한<small>EC2 Role, CI/CD User 인라인 정책</small></div><div class="score-btns"><button class="score-btn s4" onclick="setScore('c3',4,this)">4</button><button class="score-btn s3" onclick="setScore('c3',3,this)">3</button><button class="score-btn s2" onclick="setScore('c3',2,this)">2</button><button class="score-btn s1" onclick="setScore('c3',1,this)">1</button></div></div>
+        <div class="score-item"><div class="score-item-label">④ 앱 동작<small>CRUD 전 동작, /actuator/health UP</small></div><div class="score-btns"><button class="score-btn s4" onclick="setScore('c4',4,this)">4</button><button class="score-btn s3" onclick="setScore('c4',3,this)">3</button><button class="score-btn s2" onclick="setScore('c4',2,this)">2</button><button class="score-btn s1" onclick="setScore('c4',1,this)">1</button></div></div>
+      </div>
+
+      <!-- 트랙별 -->
+      <div class="score-area">
+        <div class="score-area-title" id="track-area-title" style="color:var(--teal)">
+          <span>🟢 트랙별 배포 방식</span>
+          <span style="font-family:'JetBrains Mono';font-size:.88rem" id="trk-total">0 / 16</span>
+        </div>
+        <div id="titems-A">
+          <div class="score-item"><div class="score-item-label">① ALB + ASG 이중화<small>멀티AZ 2대, TG Healthy, serverIp 교대</small></div><div class="score-btns"><button class="score-btn s4" onclick="setScore('t1',4,this)">4</button><button class="score-btn s3" onclick="setScore('t1',3,this)">3</button><button class="score-btn s2" onclick="setScore('t1',2,this)">2</button><button class="score-btn s1" onclick="setScore('t1',1,this)">1</button></div></div>
+          <div class="score-item"><div class="score-item-label">② User Data & systemd<small>BE:.env+service / FE:Node+PM2+Nginx</small></div><div class="score-btns"><button class="score-btn s4" onclick="setScore('t2',4,this)">4</button><button class="score-btn s3" onclick="setScore('t2',3,this)">3</button><button class="score-btn s2" onclick="setScore('t2',2,this)">2</button><button class="score-btn s1" onclick="setScore('t2',1,this)">1</button></div></div>
+          <div class="score-item"><div class="score-item-label">③ GitHub Actions 4-Job<small>git push → 4 Job Success</small></div><div class="score-btns"><button class="score-btn s4" onclick="setScore('t3',4,this)">4</button><button class="score-btn s3" onclick="setScore('t3',3,this)">3</button><button class="score-btn s2" onclick="setScore('t3',2,this)">2</button><button class="score-btn s1" onclick="setScore('t3',1,this)">1</button></div></div>
+          <div class="score-item"><div class="score-item-label">④ 이중화 시나리오<small>EC2 종료 후 HTTP 200 유지, ASG 자가복구</small></div><div class="score-btns"><button class="score-btn s4" onclick="setScore('t4',4,this)">4</button><button class="score-btn s3" onclick="setScore('t4',3,this)">3</button><button class="score-btn s2" onclick="setScore('t4',2,this)">2</button><button class="score-btn s1" onclick="setScore('t4',1,this)">1</button></div></div>
+        </div>
+        <div id="titems-B" style="display:none">
+          <div class="score-item"><div class="score-item-label">① EB 환경 구성<small>Java 21, 환경변수, Procfile</small></div><div class="score-btns"><button class="score-btn s4" onclick="setScore('t1',4,this)">4</button><button class="score-btn s3" onclick="setScore('t1',3,this)">3</button><button class="score-btn s2" onclick="setScore('t1',2,this)">2</button><button class="score-btn s1" onclick="setScore('t1',1,this)">1</button></div></div>
+          <div class="score-item"><div class="score-item-label">② RDS·EB SG 체인<small>EB-SG↔RDS-SG, 퍼블릭아니요</small></div><div class="score-btns"><button class="score-btn s4" onclick="setScore('t2',4,this)">4</button><button class="score-btn s3" onclick="setScore('t2',3,this)">3</button><button class="score-btn s2" onclick="setScore('t2',2,this)">2</button><button class="score-btn s1" onclick="setScore('t2',1,this)">1</button></div></div>
+          <div class="score-item"><div class="score-item-label">③ CodePipeline 3단계<small>Source→Build→Deploy Succeeded</small></div><div class="score-btns"><button class="score-btn s4" onclick="setScore('t3',4,this)">4</button><button class="score-btn s3" onclick="setScore('t3',3,this)">3</button><button class="score-btn s2" onclick="setScore('t3',2,this)">2</button><button class="score-btn s1" onclick="setScore('t3',1,this)">1</button></div></div>
+          <div class="score-item"><div class="score-item-label">④ EB 고도화<small>헬스체크 경로, ASG Min2, 멀티AZ</small></div><div class="score-btns"><button class="score-btn s4" onclick="setScore('t4',4,this)">4</button><button class="score-btn s3" onclick="setScore('t4',3,this)">3</button><button class="score-btn s2" onclick="setScore('t4',2,this)">2</button><button class="score-btn s1" onclick="setScore('t4',1,this)">1</button></div></div>
+        </div>
+        <div id="titems-C" style="display:none">
+          <div class="score-item"><div class="score-item-label">① Amplify 앱 & 빌드<small>NEXT_PUBLIC_API_URL 주입, 빌드 성공</small></div><div class="score-btns"><button class="score-btn s4" onclick="setScore('t1',4,this)">4</button><button class="score-btn s3" onclick="setScore('t1',3,this)">3</button><button class="score-btn s2" onclick="setScore('t1',2,this)">2</button><button class="score-btn s1" onclick="setScore('t1',1,this)">1</button></div></div>
+          <div class="score-item"><div class="score-item-label">② EB 백엔드 & CORS<small>CORS_ORIGINS에 Amplify 도메인 등록</small></div><div class="score-btns"><button class="score-btn s4" onclick="setScore('t2',4,this)">4</button><button class="score-btn s3" onclick="setScore('t2',3,this)">3</button><button class="score-btn s2" onclick="setScore('t2',2,this)">2</button><button class="score-btn s1" onclick="setScore('t2',1,this)">1</button></div></div>
+          <div class="score-item"><div class="score-item-label">③ Amplify CI/CD<small>git push → 자동 빌드·배포, 히스토리 3회+</small></div><div class="score-btns"><button class="score-btn s4" onclick="setScore('t3',4,this)">4</button><button class="score-btn s3" onclick="setScore('t3',3,this)">3</button><button class="score-btn s2" onclick="setScore('t3',2,this)">2</button><button class="score-btn s1" onclick="setScore('t3',1,this)">1</button></div></div>
+          <div class="score-item"><div class="score-item-label">④ HTTPS 설정<small>.amplifyapp.com HTTPS 또는 커스텀 도메인+ACM</small></div><div class="score-btns"><button class="score-btn s4" onclick="setScore('t4',4,this)">4</button><button class="score-btn s3" onclick="setScore('t4',3,this)">3</button><button class="score-btn s2" onclick="setScore('t4',2,this)">2</button><button class="score-btn s1" onclick="setScore('t4',1,this)">1</button></div></div>
+        </div>
+      </div>
+
+      <!-- 협업 -->
+      <div class="score-area">
+        <div class="score-area-title" style="color:var(--purple)">
+          <span>🟣 연동·검증·협업</span>
+          <span style="font-family:'JetBrains Mono';font-size:.88rem;color:var(--purple)" id="co-total">0 / 20</span>
+        </div>
+        <div class="score-item"><div class="score-item-label">① 프론트↔백 실제 연동<small>8점 · 4점 · 0점</small></div><div class="score-btns"><button class="score-btn s8" onclick="setScore('o1',8,this)">8</button><button class="score-btn s4" onclick="setScore('o1',4,this)">4</button><button class="score-btn s0" onclick="setScore('o1',0,this)">0</button></div></div>
+        <div class="score-item"><div class="score-item-label">② GitHub 커밋<small>4점 · 2점 · 0점</small></div><div class="score-btns"><button class="score-btn s4" onclick="setScore('o2',4,this)">4</button><button class="score-btn s2" onclick="setScore('o2',2,this)">2</button><button class="score-btn s0" onclick="setScore('o2',0,this)">0</button></div></div>
+        <div class="score-item"><div class="score-item-label">③ README 문서<small>4점 · 2점 · 0점</small></div><div class="score-btns"><button class="score-btn s4" onclick="setScore('o3',4,this)">4</button><button class="score-btn s2" onclick="setScore('o3',2,this)">2</button><button class="score-btn s0" onclick="setScore('o3',0,this)">0</button></div></div>
+        <div class="score-item"><div class="score-item-label">④ 시연·설명<small>4점 · 2점 · 0점</small></div><div class="score-btns"><button class="score-btn s4" onclick="setScore('o4',4,this)">4</button><button class="score-btn s2" onclick="setScore('o4',2,this)">2</button><button class="score-btn s0" onclick="setScore('o4',0,this)">0</button></div></div>
+      </div>
+    </div>
+
+    <!-- 우: 점수 카드 -->
+    <div>
+      <div class="score-card">
+        <h3>👤 학생 이름</h3>
+        <input class="student-input" type="text" id="studentName" placeholder="이름 입력..." oninput="updateDisplay()">
+        <div class="track-label-box">선택 트랙: <strong id="trackLabel" style="color:var(--teal)">미선택</strong></div>
+
+        <div class="score-breakdown">
+          <div class="score-row"><span class="label">공통 인프라 (×2.5)</span><span class="val" id="com-score" style="color:var(--blue)">0 / 40</span></div>
+          <div class="score-row"><span class="label">트랙별 배포 (×2.5)</span><span class="val" id="trk-score" style="color:var(--teal)">0 / 40</span></div>
+          <div class="score-row"><span class="label">연동·협업</span><span class="val" id="co-score" style="color:var(--purple)">0 / 20</span></div>
+        </div>
+
+        <div class="total-score">
+          <div class="num" id="totalScore">0</div>
+          <div class="denom">/ 100점</div>
+          <div><span class="grade-badge" id="gradeBadge" style="background:var(--bg3);color:var(--muted)">미채점</span></div>
+        </div>
+
+        <div class="bonus-section">
+          <div style="font-size:.7rem;color:var(--muted);margin-bottom:.38rem;letter-spacing:.4px;text-transform:uppercase;font-weight:700">⭐ 가산점</div>
+          <div class="bonus-item"><input type="checkbox" id="b1" onchange="updateDisplay()"><label for="b1">RDS Multi-AZ + 페일오버 테스트</label><span class="pts">+4</span></div>
+          <div class="bonus-item"><input type="checkbox" id="b2" onchange="updateDisplay()"><label for="b2">무중단 배포 검증</label><span class="pts">+3</span></div>
+          <div class="bonus-item"><input type="checkbox" id="b3" onchange="updateDisplay()"><label for="b3">커스텀 도메인 + HTTPS</label><span class="pts">+3</span></div>
+          <div class="bonus-item"><input type="checkbox" id="b4" onchange="updateDisplay()"><label for="b4">CloudWatch 대시보드</label><span class="pts">+2</span></div>
+          <div style="display:flex;justify-content:space-between;margin-top:.38rem;font-size:.78rem;border-top:1px solid var(--border);padding-top:.38rem">
+            <span style="color:var(--muted);font-weight:500">가산점</span>
+            <span style="color:var(--purple);font-family:'JetBrains Mono';font-weight:700" id="bonusDisplay">+0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:.25rem;font-size:.84rem;font-weight:700">
+            <span style="color:var(--text)">최종 점수</span>
+            <span style="color:var(--yellow);font-family:'JetBrains Mono'" id="finalScore">0 / 100</span>
+          </div>
+        </div>
+
+        <button class="reset-btn" onclick="resetAll()">↺ 초기화</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<footer>
+  Java &amp; Cloud Fullstack Bootcamp — 3단계 AWS 배포 통합 평가 가이드
+  <span style="margin:0 .4rem;color:var(--border2)">·</span>
+  Java 21 · Spring Boot 3.x · Next.js 15 · React 19 · AWS
+</footer>
+
+<script>
+/* ── 탭 전환 ──────────────────────────────────────────── */
+function showTab(name, el) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn, .nav-links a').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (el) el.classList.add('active');
+}
+
+/* ── 개요 트랙 카드 ────────────────────────────────────── */
+function selectTrackCard(t) {
+  ['A','B','C'].forEach(x => document.getElementById('tcard-'+x).className = 'track-card');
+  document.getElementById('tcard-'+t).classList.add('sel-'+t);
+}
+
+/* ── 과제 트랙 탭 ──────────────────────────────────────── */
+function showAssignTrack(t, el) {
+  ['A','B','C'].forEach(x => {
+    document.getElementById('assign-'+x).style.display = 'none';
+    const b = document.getElementById('atab-'+x);
+    b.classList.remove('active');
+  });
+  document.getElementById('assign-'+t).style.display = 'block';
+  el.classList.add('active');
+}
+
+/* ── 루브릭 트랙 탭 ────────────────────────────────────── */
+function showRubricTrack(t, el) {
+  ['A','B','C'].forEach(x => {
+    document.getElementById('rubric-'+x).style.display = 'none';
+    document.getElementById('rtab-'+x).classList.remove('active');
+  });
+  document.getElementById('rubric-'+t).style.display = 'block';
+  el.classList.add('active');
+}
+
+/* ── 체크리스트 ────────────────────────────────────────── */
+function toggleCheck(li) {
+  li.classList.toggle('checked');
+  const items = document.querySelectorAll('#checklist li');
+  const done  = document.querySelectorAll('#checklist li.checked').length;
+  document.getElementById('progressBar').style.width = Math.round(done/items.length*100)+'%';
+  document.getElementById('progressLabel').textContent = done+' / '+items.length+' 완료';
+}
+
+/* ── 채점기 ────────────────────────────────────────────── */
+const scores = {c1:0,c2:0,c3:0,c4:0, t1:0,t2:0,t3:0,t4:0, o1:0,o2:0,o3:0,o4:0};
+const trackNames = {A:'🅐 3-Tier 직접 구축', B:'🅑 EB + CodePipeline', C:'🅒 Amplify + EB'};
+const trackColors = {A:'var(--blue)', B:'var(--green)', C:'var(--orange)'};
+let scorerTrack = null;
+
+function selectScorerTrack(t) {
+  scorerTrack = t;
+  ['A','B','C'].forEach(x => {
+    document.getElementById('sel-'+x).className = 'track-sel-btn';
+    document.getElementById('titems-'+x).style.display = 'none';
+  });
+  document.getElementById('sel-'+t).classList.add('sel-'+t);
+  document.getElementById('titems-'+t).style.display = 'block';
+  ['t1','t2','t3','t4'].forEach(k => scores[k] = 0);
+  document.getElementById('titems-'+t).querySelectorAll('.score-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('trackLabel').textContent = trackNames[t];
+  document.getElementById('trackLabel').style.color = trackColors[t];
+  document.getElementById('track-area-title').style.color = trackColors[t];
+  document.getElementById('trk-total').style.color = trackColors[t];
+  document.getElementById('trk-score').style.color = trackColors[t];
+  updateDisplay();
+}
+
+function setScore(key, val, btn) {
+  scores[key] = val;
+  btn.parentElement.querySelectorAll('.score-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  updateDisplay();
+}
+
+function updateDisplay() {
+  const com = scores.c1+scores.c2+scores.c3+scores.c4;
+  const trk = scores.t1+scores.t2+scores.t3+scores.t4;
+  const co  = scores.o1+scores.o2+scores.o3+scores.o4;
+  document.getElementById('com-total').textContent = com+' / 16';
+  document.getElementById('trk-total').textContent = trk+' / 16';
+  document.getElementById('co-total').textContent  = co+' / 20';
+  const comC = com*2.5, trkC = trk*2.5;
+  document.getElementById('com-score').textContent = comC+' / 40';
+  document.getElementById('trk-score').textContent = trkC+' / 40';
+  document.getElementById('co-score').textContent  = co+' / 20';
+  const base = comC + trkC + co;
+  document.getElementById('totalScore').textContent = base;
+  const bonus = Math.min(
+    (document.getElementById('b1').checked?4:0)+
+    (document.getElementById('b2').checked?3:0)+
+    (document.getElementById('b3').checked?3:0)+
+    (document.getElementById('b4').checked?2:0), 10);
+  document.getElementById('bonusDisplay').textContent = '+'+bonus;
+  const final = Math.min(base+bonus, 100);
+  document.getElementById('finalScore').textContent = final+' / 100';
+  const el = document.getElementById('totalScore');
+  const badge = document.getElementById('gradeBadge');
+  let grade, bg, color;
+  if(base===0&&bonus===0){grade='미채점';bg='var(--bg3)';color='var(--muted)';el.style.color='var(--text)';}
+  else if(final>=90){grade='S';bg='var(--teal-light)'; color='var(--teal)'; el.style.color=color;}
+  else if(final>=80){grade='A';bg='var(--blue-light)';  color='var(--blue)'; el.style.color=color;}
+  else if(final>=70){grade='B';bg='var(--yellow-light)';color='var(--yellow)';el.style.color=color;}
+  else if(final>=60){grade='C';bg='var(--orange-light)';color='var(--orange)';el.style.color=color;}
+  else{grade='F';bg='var(--red-light)';color='var(--red)';el.style.color=color;}
+  badge.textContent=grade; badge.style.background=bg; badge.style.color=color;
+}
+
+function resetAll() {
+  Object.keys(scores).forEach(k=>scores[k]=0);
+  document.querySelectorAll('.score-btn').forEach(b=>b.classList.remove('selected'));
+  ['b1','b2','b3','b4'].forEach(id=>document.getElementById(id).checked=false);
+  document.getElementById('studentName').value='';
+  updateDisplay();
+}
+
+/* ── 타이머 ────────────────────────────────────────────── */
+let timerSec=180, timerInterval=null, timerRunning=false;
+const fmt = s => String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+
+function updateTimerDisplay() {
+  const el=document.getElementById('timerDisplay');
+  const lb=document.getElementById('timerLabel');
+  el.textContent=fmt(timerSec); el.className='timer-display';
+  if(timerSec<=0){el.classList.add('danger');lb.textContent='⏰ 시간 종료!';}
+  else if(timerSec<=30){el.classList.add('danger');lb.textContent='⚠️ '+timerSec+'초 남았습니다!';}
+  else if(timerSec<=60){el.classList.add('warning');lb.textContent='⚡ 1분 미만 남음';}
+  else lb.textContent='시연 진행 중 · '+fmt(timerSec)+' 남음';
+}
+function startTimer() {
+  if(timerRunning){clearInterval(timerInterval);timerRunning=false;document.getElementById('timerStartBtn').textContent='▶ 재개';document.getElementById('timerLabel').textContent='일시 정지';return;}
+  if(timerSec<=0)resetTimer();
+  timerRunning=true; document.getElementById('timerStartBtn').textContent='⏸ 일시정지';
+  timerInterval=setInterval(()=>{timerSec--;updateTimerDisplay();if(timerSec<=0){clearInterval(timerInterval);timerRunning=false;document.getElementById('timerStartBtn').textContent='▶ 시작';}},1000);
+}
+function resetTimer(){clearInterval(timerInterval);timerRunning=false;timerSec=180;document.getElementById('timerStartBtn').textContent='▶ 시작';document.getElementById('timerDisplay').className='timer-display';document.getElementById('timerDisplay').textContent='03:00';document.getElementById('timerLabel').textContent='시연 시작 전 · 3분 카운트다운';}
+function setTimer(min){clearInterval(timerInterval);timerRunning=false;timerSec=min*60;document.getElementById('timerStartBtn').textContent='▶ 시작';document.getElementById('timerDisplay').className='timer-display';updateTimerDisplay();}
+
+function toggleMobile(){const nl=document.querySelector('.nav-links');const showing=nl.style.display==='flex';nl.style.cssText=showing?'':'display:flex;flex-direction:column;position:absolute;top:56px;right:1rem;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.5rem;z-index:200;box-shadow:var(--shadow-md)';}
+</script>
+</body>
+</html>
